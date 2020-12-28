@@ -2,6 +2,7 @@
 # from functions import *
 from operators_ga import *
 from tqdm import tqdm
+import time
 
 
 # parametros de entrada iniciales
@@ -13,6 +14,7 @@ n_vehiculos_s = 9  # numero de vehiculos de segundo nivel
 n_centrosregionales = 4  # numero de centros regionales
 n_centroslocales = 7  # numero de centros locales
 n_poblacion = 100  # numero de inidividuos a generar
+prob_mut = 0.01
 individuos = []
 idx_externa = []
 p_externa = []
@@ -23,14 +25,15 @@ final_inventarioQ = []
 final_inventarioI = []
 valores_f1 = []
 valores_f2 = []
-n_generaciones = 100
+n_generaciones = 10
 
-
+TimeStart = time.time()
 # obtencion de las demandas y capacidades dadas en matrices en un archivo de excel
 demanda_clientes, capacidad_vehiculos_p, capacidad_vehiculos_s, capacidad_cr, capacidad_cl, inventario, costo_inventario, costo_instalaciones_cr, costo_instalaciones_cl, costo_vehiculos_p, costo_vehiculos_s, costo_compraproductos, costo_transporte, costo_rutas_p, costo_rutas_s, costo_humano = read_data(n_clientes, n_productos, n_periodos, n_vehiculos_p, n_vehiculos_s, n_centrosregionales, n_centroslocales)
 
+print("Generando poblacion inicial...")
 # generacion de la poblacion inicial
-for i in range(n_poblacion):
+for i in tqdm(range(n_poblacion)):
     # Generacion de un individuo
     asignaciones_primer_lv, asignaciones_segundo_lv, rutas_primer_lv, rutas_segundo_lv, demandas_cr_full, demandas_cl = individuo(n_clientes, n_centroslocales, n_centrosregionales, n_periodos, n_productos, n_vehiculos_s, n_vehiculos_p, capacidad_cl, capacidad_cr, capacidad_vehiculos_p, capacidad_vehiculos_s, demanda_clientes)
     # almacenamiento del individuo en una lista
@@ -59,6 +62,7 @@ Q_poblation = final_inventarioQ
 I_poblation = final_inventarioI
 f1_poblation = valores_f1
 f2_poblation = valores_f2
+
 # calculo del fitness de la poblacion
 fitness_f, densidades_f = fitness(n_poblacion, valores_f1, valores_f2)
 # seleccion de los individuos no dominados
@@ -92,23 +96,38 @@ for f, idg in enumerate(idx_externa):
     valores_f2_o.append(valores_f2[idg])
     fitness_dict_o[f] = fitness_dict[idg]
 
+print("Ejecutando algoritmo genetico...")
 # aplicacion de los operadores en cada generacion
-for _ in tqdm(range(n_generaciones)):
+for _ in tqdm(range(1, n_generaciones+1)):
     # inicio operadores geneticos
     # seleccion de los padres
     idx_parents = selection_padres(n_poblacion, fitness_dict_o)
     # cruce
     p_crossed, hijos, demand_cr_hijos, demand_cl_hijos, Q_hijos, I_hijos, f1_hijos, f2_hijos = crossover(p_externa, idx_parents, n_clientes, n_centroslocales, n_centrosregionales, n_periodos, n_productos, n_vehiculos_s, n_vehiculos_p, capacidad_cr, capacidad_cl, capacidad_vehiculos_p, capacidad_vehiculos_s, demanda_clientes, demand_cl_poblation, inventario, costo_instalaciones_cl, costo_instalaciones_cr, costo_compraproductos, costo_transporte, costo_inventario, costo_rutas_s, costo_rutas_p, costo_vehiculos_s, costo_vehiculos_p, costo_humano)
     # mutacion
-    hijos, demandas_cr_hijos, Q_hijos, I_hijos, f1_hijos, f2_hijos = mutation(hijos, demand_cr_hijos, n_centrosregionales, capacidad_cr, n_periodos, n_productos, inventario, costo_instalaciones_cl, costo_instalaciones_cr, costo_compraproductos, costo_transporte, costo_inventario, costo_rutas_s, costo_rutas_p, n_centroslocales, costo_vehiculos_s, costo_vehiculos_p, costo_humano, Q_hijos, I_hijos, f1_hijos, f2_hijos)
+    hijos, demandas_cr_hijos, Q_hijos, I_hijos, f1_hijos, f2_hijos = mutation(hijos, demand_cr_hijos, n_centrosregionales, capacidad_cr, n_periodos, n_productos, inventario, costo_instalaciones_cl, costo_instalaciones_cr, costo_compraproductos, costo_transporte, costo_inventario, costo_rutas_s, costo_rutas_p, n_centroslocales, costo_vehiculos_s, costo_vehiculos_p, costo_humano, Q_hijos, I_hijos, f1_hijos, f2_hijos, prob_mut)
+    # actualizacion del orden de los parametros de los padres
+    demand_cr_poblation_o = []
+    demand_cl_poblation_o = []
+    Q_poblation_o = []
+    I_poblation_o = []
+    f1_poblation_o = []
+    f2_poblation_o = []
+    for padre in idx_parents:
+        demand_cr_poblation_o.append(demand_cr_poblation[padre])
+        demand_cl_poblation_o.append(demand_cl_poblation[padre])
+        Q_poblation_o.append(Q_poblation[padre])
+        I_poblation_o.append(I_poblation[padre])
+        f1_poblation_o.append(f1_poblation[padre])
+        f2_poblation_o.append(f2_poblation[padre])
     # consolidacion de la nueva poblacion
     big_poblation = p_crossed + hijos
-    demand_cr_big_poblation = demand_cr_poblation + demandas_cr_hijos
-    demand_cl_big_poblation = demand_cl_poblation + demand_cl_hijos
-    Q_big_poblation = Q_poblation + Q_hijos
-    I_big_poblation = I_poblation + I_hijos
-    f1_big_poblation = f1_poblation + f1_hijos
-    f2_big_poblation = f2_poblation + f2_hijos
+    demand_cr_big_poblation = demand_cr_poblation_o + demandas_cr_hijos
+    demand_cl_big_poblation = demand_cl_poblation_o + demand_cl_hijos
+    Q_big_poblation = Q_poblation_o + Q_hijos
+    I_big_poblation = I_poblation_o + I_hijos
+    f1_big_poblation = f1_poblation_o + f1_hijos
+    f2_big_poblation = f2_poblation_o + f2_hijos
     # calculo del fitness de la poblacion y reorganizacion de los individuos
     idx_externa = []
     ind_k = []
@@ -181,6 +200,10 @@ for _ in tqdm(range(n_generaciones)):
         I_poblation.append(I_big_poblation[idg])
     f1_poblation = valores_f1_o
     f2_poblation = valores_f2_o
-
-
+TimeEnd = time.time()
+print("El tiempo de ejecucion del algoritmo es de {} segundos".format(TimeEnd-TimeStart))
+# extraccion y visualizacion de individuos
+print("Individuo         f1                               f2")
+for ind_f in range(len(p_externa)):
+    print("{0:3d}             {1:.3f}                    {2:.3f}".format(ind_f, f1_poblation[ind_f], f2_poblation[ind_f]))
 

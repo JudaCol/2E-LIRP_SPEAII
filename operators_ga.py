@@ -6,18 +6,20 @@ from itertools import groupby
 # operador de seleccion de padres
 def selection_padres(poblacion, fitness_dict):
     parents = []
-    for _ in range(poblacion):
+    for n in range(poblacion):
         rand_1 = np.random.randint(poblacion)
         while rand_1 in parents:
             rand_1 = np.random.randint(poblacion)
+        if n == poblacion - 1:
+            parents.append(rand_1)
+            break
         rand_2 = np.random.randint(poblacion)
-        while (rand_2 in parents) and rand_2 == rand_1:
+        while (rand_2 in parents) or rand_2 == rand_1:
             rand_2 = np.random.randint(poblacion)
         if fitness_dict[rand_1] <= fitness_dict[rand_2]:
             parents.append(rand_1)
         else:
             parents.append(rand_2)
-
     return parents
 
 
@@ -209,7 +211,6 @@ def reconstruction_2(n_clientes, n_centroslocales, n_centrosregionales, n_period
 
 
 def crossover(individuos, idx_padres, n_clientes, n_centroslocales, n_centrosregionales, n_periodos, n_productos, n_vehiculos_s, n_vehiculos_p, capacidad_cr, capacidad_cl, capacidad_vehiculos_p, capacidad_vehiculos_s, demanda_clientes, demandas_cl_cross, inventario, costo_instalaciones_cl, costo_instalaciones_cr, costo_compraproductos, costo_transporte, costo_inventario, costo_rutas_s, costo_rutas_p, costo_vehiculos_s, costo_vehiculos_p, costo_humano):
-    crossed = []
     hijos = []
     demand_cr_hijos = []
     demand_cl_hijos = []
@@ -219,12 +220,12 @@ def crossover(individuos, idx_padres, n_clientes, n_centroslocales, n_centrosreg
     f2_hijos = []
     p_crossed = []
     for idx in range(0, len(idx_padres), 2):
-        padre1 = individuos[idx]
-        padre2 = individuos[idx+1]
+        padre1 = individuos[idx_padres[idx]]
+        padre2 = individuos[idx_padres[idx+1]]
         p_crossed.append(padre1)
         p_crossed.append(padre2)
-        demandas_cl_cross_seg2 = demandas_cl_cross[idx]  # demandas padre 1
-        demandas_cl_cross_seg1 = demandas_cl_cross[idx+1]  # demandas padre 2
+        # demandas_cl_cross_seg2 = demandas_cl_cross[idx]  # demandas padre 1
+        demandas_cl_cross_seg1 = demandas_cl_cross[idx_padres[idx+1]]  # demandas padre 2
         # en el hijo 1 se parcializa el segmento 2
         # elementos que se heredan al hijo 1 del padre 2 y padre 1
         seg1_escalon = padre2[2]  # asignaciones de segundo escalon
@@ -254,14 +255,13 @@ def crossover(individuos, idx_padres, n_clientes, n_centroslocales, n_centrosreg
         Q_hijos.append(hijo2_Q)
         f1_hijos.append(hijo1_costo_f1)
         f1_hijos.append(hijo2_costo_f1)
-        f2_hijos.append(hijo2_costo_f1)
+        f2_hijos.append(hijo1_costo_f2)
         f2_hijos.append(hijo2_costo_f2)
 
     return p_crossed, hijos, demand_cr_hijos, demand_cl_hijos, Q_hijos, I_hijos, f1_hijos, f2_hijos
 
 
-def mutation(hijos, demandas_hijos, n_centrosregionales, capacidad_cr, n_periodos, n_productos, inventario, costo_instalaciones_cl, costo_instalaciones_cr, costo_compraproductos, costo_transporte, costo_inventario, costo_rutas_s, costo_rutas_p, n_centroslocales, costo_vehiculos_s, costo_vehiculos_p, costo_humano, Q_hijos, I_hijos, f1_hijos, f2_hijos):
-    prob_mut = 0.1
+def mutation(hijos, demandas_hijos, n_centrosregionales, capacidad_cr, n_periodos, n_productos, inventario, costo_instalaciones_cl, costo_instalaciones_cr, costo_compraproductos, costo_transporte, costo_inventario, costo_rutas_s, costo_rutas_p, n_centroslocales, costo_vehiculos_s, costo_vehiculos_p, costo_humano, Q_hijos, I_hijos, f1_hijos, f2_hijos, prob_mut):
     h_muts = int(len(hijos) * prob_mut)
     idx_hijos = np.array(range(len(hijos)))
     muted = []
@@ -365,7 +365,7 @@ def mutation(hijos, demandas_hijos, n_centrosregionales, capacidad_cr, n_periodo
             hijo_copy[0] = asig_primer_lvl
             hijo_copy[1] = rutas_primer_lvl
             hijos[idx_hijo_copy] = hijo_copy
-            demandas_hijos[idx_hijo_copy] = demand_hijo_copy
+            demandas_hijos[idx_hijo_copy] = demand_hijo_copy.tolist()
             Q_hijos[idx_hijo_copy] = valoresQ
             I_hijos[idx_hijo_copy] = valoresI
             f1_hijos[idx_hijo_copy] = costo_f1
@@ -404,9 +404,9 @@ def reduction(n_poblacion, frentes_dict, distancias_t):
                     elif rest < 2:
                         idx_poblation.append(ind[0])
                     elif rest > 2:
-                        distancias = []
+                        distancias = {}
                         for i_temp in ind:
-                            distancias.append(distancias_t[i_temp])
+                            distancias[i_temp] = distancias_t[i_temp]
                         distancias_ord = sorted(distancias.items(), key=operator.itemgetter(1), reverse=True)
                         while rest > 0:
                             idx_poblation.append(distancias_ord.pop(0)[0])
