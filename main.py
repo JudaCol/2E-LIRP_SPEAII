@@ -3,6 +3,7 @@
 from operators_ga import *
 from tqdm import tqdm
 import time
+import matplotlib.pyplot as plt
 
 
 # parametros de entrada iniciales
@@ -202,8 +203,57 @@ for _ in tqdm(range(1, n_generaciones+1)):
     f2_poblation = valores_f2_o
 TimeEnd = time.time()
 print("El tiempo de ejecucion del algoritmo es de {} segundos".format(TimeEnd-TimeStart))
-# extraccion y visualizacion de individuos
-print("Individuo         f1                               f2")
-for ind_f in range(len(p_externa)):
-    print("{0:3d}             {1:.3f}                    {2:.3f}".format(ind_f, f1_poblation[ind_f], f2_poblation[ind_f]))
+# extraccion de mejores individuos
+fitness_p_ext, densidades_p_ext = fitness(len(p_externa), f1_poblation, f2_poblation)
+idx_best = []
+fit_best = []
+for idx_pext, fit_pext in fitness_p_ext.items():
+    if fit_pext <= 1:
+        idx_best.append(idx_pext)
+        fit_best.append(fit_pext)
+# almacenamiento de las estructuras de los mejores individuos en variables independientes
+best_inds = []
+best_q = []
+best_i = []
+best_f1 = []
+best_f2 = []
+for idx_b in idx_best:
+    best_inds.append(p_externa[idx_b])
+    best_q.append(Q_poblation[idx_b])
+    best_i.append(I_poblation[idx_b])
+    best_f1.append(f1_poblation[idx_b])
+    best_f2.append(f2_poblation[idx_b])
+# visualizacion de los individuos
+print("\n FITNESS DE LOS MEJORES INDIVIDUOS DE LA APROXIMACION DE PARETO - FITNESS MENOR O IGUAL A 1 \n")
+print("individuo                     f1                                f2")
+for idx in idx_best:
+    print("{0:3d}                    {1:.3f}                      {2:.3f}".format(idx + 1, f1_poblation[idx], f2_poblation[idx]))
+print("\n FITNESS DE LOS INDIVIDUOS DE LA APROXIMACION DE PARETO - POBLACION FINAL \n")
+print("individuo                     f1                                f2")
+for id_bob in range(len(p_externa)):
+    print("{0:3d}                    {1:.3f}                      {2:.3f}".format(id_bob + 1, f1_poblation[id_bob], f2_poblation[id_bob]))
 
+# graficos
+# graficos de fitness
+# valores del eje x - f1
+# valores del eje y - f2
+x = []
+y = []
+f1_pareto_g = {}
+for xs in idx_best:
+    f1_pareto_g[xs] = f1_poblation[xs]
+
+f1_pareto_o = sorted(f1_pareto_g.items(), key=operator.itemgetter(1), reverse=False)  # ordenamos las distancias de apilamiento de mayor a menor
+
+for xi in f1_pareto_o:
+    x.append(xi[1])
+    y.append(f2_poblation[xi[0]])
+
+# parametros del grafico
+fig, axs = plt.subplots()
+# grafico fitness total
+axs.plot(x, y, marker='o', ms=5, mec='r', mfc='r', linestyle=':', color='g')
+axs.set_title("Frontera de pareto")
+axs.set_xlabel("F1")
+axs.set_ylabel("F2")
+plt.show()
